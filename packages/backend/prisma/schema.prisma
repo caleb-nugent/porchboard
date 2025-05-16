@@ -1,0 +1,87 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole
+  cityId    String
+  city      City     @relation(fields: [cityId], references: [id])
+  events    Event[]  @relation("creator")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([cityId])
+}
+
+model City {
+  id              String           @id @default(uuid())
+  name            String
+  slug            String           @unique
+  domain          String           @unique
+  branding        Json
+  subscriptionTier SubscriptionTier
+  users           User[]
+  events          Event[]
+  stripeCustomerId String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([domain])
+  @@index([slug])
+}
+
+model Event {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  startTime   DateTime
+  endTime     DateTime
+  location    Json
+  images      String[]
+  externalLink String?
+  category    String
+  cityId      String
+  city        City        @relation(fields: [cityId], references: [id])
+  creatorId   String
+  creator     User        @relation("creator", fields: [creatorId], references: [id])
+  status      EventStatus @default(PENDING)
+  recurrence  Json?
+  attachments Json[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([cityId])
+  @@index([creatorId])
+  @@index([status])
+  @@index([startTime])
+}
+
+enum UserRole {
+  ADMIN
+  EVENT_CREATOR
+  VISITOR
+}
+
+enum EventStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum SubscriptionTier {
+  STARTER
+  PRO
+  PREMIER
+} 
